@@ -148,33 +148,37 @@ def announcements():
 def home():
     return render_template('homepage.html')
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
+@app.route('/api/login', methods=['POST'])
+def login_api():
+    data = request.get_json()
 
-        user = (
-            Admin.query.filter_by(username=username).first()
-            or Captain.query.filter_by(username=username).first()
-        )
+    username = data['username']
+    password = data['password']
 
-        if user and check_password_hash(user.password_hash, password):
-            login_user(user)
+    user = (
+        Admin.query.filter_by(username=username).first()
+        or Captain.query.filter_by(username=username).first()
+    )
 
-            if isinstance(user, Admin):
-                return redirect(url_for('admin_dashboard'))
-            return redirect(url_for('captain_dashboard'))
+    if user and check_password_hash(user.password_hash, password):
+        login_user(user)  
 
-        flash('Invalid username or password')
+        return jsonify({
+            'id': user.id,
+            'username': user.username,
+            'name': user.name,
+            'role': 'admin' if isinstance(user, Admin) else 'captain'
+        }), 200
 
-    return render_template('login.html')
+    return jsonify({'error': 'Invalid username or password'}), 401
 
-@app.route('/logout')
+
+@app.route('/api/logout', methods=['POST'])
 @login_required
-def logout():
+def logout_api():
     logout_user()
-    return redirect(url_for('home'))
+    return jsonify({"success": True}), 200
+
 
 @app.route('/admin/dashboard')
 @login_required
