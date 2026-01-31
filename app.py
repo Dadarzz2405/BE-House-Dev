@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, redirect, url_for, abort, request, flash
+from flask import Flask, render_template, redirect, url_for, abort, request, flash, jsonify
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash
 from flask_migrate import Migrate
@@ -47,19 +47,34 @@ def load_user(user_id):
 #=========================================================
 #=========================================================
 #=========================================================
-@app.route('/')
-def home():
-    houses = House.query.order_by(House.name).all()
-    return render_template('homepage.html', houses=houses)
+from flask import jsonify
 
-@app.route('/live-scores')
+@app.route("/api/houses")
+def get_houses():
+    houses = House.query.order_by(House.name).all()
+    return jsonify([
+        {
+            "id": h.id,
+            "name": h.name,
+            "points": h.points
+        }
+        for h in houses
+    ])
+
+@app.route('/api/live-scores')
 def live_scores():
     houses = House.query.order_by(House.house_points.desc()).all()
-    for rank, house in enumerate(houses, start=1):
-        house.rank = rank
-    return render_template('live_scores.html', houses=houses)
+    data = []
+    for index, house in enumerate(houses):
+        data.append({
+            'rank': index,
+            'name': house.name,
+            'points': house.house_points
+        })
+    
+    return jsonify(data)
 
-@app.route('/members')
+@app.route('/api/members')
 def members():
     house_filter = request.args.get('house')
     if house_filter:
@@ -68,6 +83,35 @@ def members():
     else:
         houses = House.query.order_by(House.name).all()
 
+    result = []
+
+    for house in houses:
+        members = Member.query.filter_by(house_id=house.id).all()
+        result.append({
+            'house': {
+                'id': house.id,
+                'name': house.name
+            },
+            'members': [
+                {
+                    'id': member.id,
+                    'name': member.name,
+                    'achievements': [
+                        {
+                            'id': achievement.id,
+                            'title': achievement.title,
+                            'description': achievement.description
+                        }
+                        for achievement in member.achievements
+                    ]
+                }
+                for member in members
+            ]
+        })
+
+    return jsonify(result)
+"""
+Jinja2 Template Version
     houses_with_members = []
     for house in houses:
         members = Member.query.filter_by(house_id=house.id).all()
@@ -84,11 +128,27 @@ def members():
         selected_house=house_filter,
         all_houses=all_houses
         )
-
+"""
 @app.route('/announcements')
 def announcements():
     announcements = Announcement.query.order_by(Announcement.created_at.desc()).all()
-    return render_template('announcements.html', announcements=announcements)
+    return jsonify([
+        {
+            'id': a.id,
+            'title': a.title,
+            'content': a.content,
+            'created_at': a.created_at.isoformat(),
+            'house': {
+                'id': a.house.id,
+                'name': a.house.name
+            },
+            'captain': {
+                'id': a.captain.id,
+                'username': a.captain.username
+            }
+        }
+        for a in announcements
+    ])
 #=========================================================
 #=========================================================
 #=========================================================
