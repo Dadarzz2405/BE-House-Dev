@@ -139,11 +139,6 @@ def announcements():
         }
         for a in announcements
     ])
-
-#=========================================================
-#                   JINJA TEMPLATE ROUTES
-#=========================================================
-
 @app.route('/')
 def home():
     return render_template('homepage.html')
@@ -172,14 +167,15 @@ def login_api():
 
     return jsonify({'error': 'Invalid username or password'}), 401
 
-
 @app.route('/api/logout', methods=['POST'])
 @login_required
 def logout_api():
     logout_user()
     return jsonify({"success": True}), 200
 
-
+#=========================================================
+#                   JINJA TEMPLATE ROUTES
+#=========================================================
 @app.route('/admin/dashboard')
 @login_required
 @admin_required
