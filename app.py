@@ -6,6 +6,7 @@ from flask_migrate import Migrate
 from functools import wraps
 from flask_cors import CORS
 from models import Announcement, PointTransaction, db, Admin, House, Captain, Member, Achievement
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -17,7 +18,7 @@ app.config['SECRET_KEY'] = os.environ.get(
     'SECRET_KEY',
     '330bf9312848e19d9a88482a033cb4f566c4cbe06911fe1e452ebade42f0bc4c'
 )
-
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 # Session config for cross-origin cookies
 app.config.update(
     SESSION_COOKIE_SAMESITE="None",
